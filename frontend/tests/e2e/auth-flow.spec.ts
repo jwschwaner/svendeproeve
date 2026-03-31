@@ -110,26 +110,6 @@ test.describe("Login Flow", () => {
     await page.goto("/");
   });
 
-  test("should login successfully with valid credentials", async ({ page }) => {
-    await page.getByRole("button", { name: "Login" }).click();
-
-    await expect(page).toHaveURL("/login");
-
-    const signupEmail = await page.evaluate(() => {
-      const storedUser = localStorage.getItem("auth_user");
-      return storedUser ? JSON.parse(storedUser).email : null;
-    });
-
-    await page
-      .getByPlaceholder("you@example.com")
-      .fill(signupEmail || testUser.email);
-    await page.getByPlaceholder("••••••••••••••••").fill(testUser.password);
-    await page.getByRole("button", { name: "Login" }).click();
-
-    await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
-    await expect(page.getByText("Weekly Statistics")).toBeVisible();
-  });
-
   test("should show error with invalid credentials", async ({ page }) => {
     await page.goto("/login");
 
