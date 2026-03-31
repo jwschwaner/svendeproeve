@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,9 +14,13 @@ import {
   TableHead,
   TableRow,
   Chip,
+  CircularProgress,
 } from '@mui/material';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getInboxById } from '@/lib/inboxes';
+import { useAuth } from '@/hooks/useAuth';
+import { useOrganizations } from '@/hooks/useOrganizations';
 
 const statsData = [
   { label: 'Active Threads', value: '67' },
@@ -71,6 +76,38 @@ const threadsData = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { hasOrganizations, isLoading } = useOrganizations();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else if (!isLoading && !hasOrganizations) {
+      router.push('/onboarding');
+    }
+  }, [isAuthenticated, hasOrganizations, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'background.default',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated || !hasOrganizations) {
+    return null;
+  }
+
   return (
     <DashboardLayout>
       <Typography variant="h4" sx={{ mb: 4, color: 'white', fontWeight: 400 }}>
