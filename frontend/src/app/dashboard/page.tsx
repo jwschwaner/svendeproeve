@@ -110,11 +110,11 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <Typography variant="h4" sx={{ mb: 4, color: 'white', fontWeight: 400 }}>
+      <Typography variant="h4" data-testid="dashboard-greeting" sx={{ mb: 4, color: 'white', fontWeight: 400 }}>
         Goodmorning, John Doe!
       </Typography>
 
-      <Typography variant="h6" sx={{ mb: 3, color: 'white', textAlign: 'center' }}>
+      <Typography variant="h6" data-testid="dashboard-weekly-stats-title" sx={{ mb: 3, color: 'white', textAlign: 'center' }}>
         Weekly Statistics
       </Typography>
 

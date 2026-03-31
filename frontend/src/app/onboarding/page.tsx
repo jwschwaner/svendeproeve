@@ -90,6 +90,7 @@ export default function OnboardingPage() {
     >
       <Typography
         variant="h1"
+        data-testid="onboarding-welcome-title"
         sx={{
           fontSize: '4rem',
           fontWeight: 400,
@@ -102,6 +103,7 @@ export default function OnboardingPage() {
 
       <Typography
         variant="h6"
+        data-testid="onboarding-subtitle"
         sx={{
           mb: 6,
           color: 'text.secondary',
@@ -120,7 +122,7 @@ export default function OnboardingPage() {
         }}
       >
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" data-testid="onboarding-error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -139,6 +141,7 @@ export default function OnboardingPage() {
           onChange={(e) => setOrgName(e.target.value)}
           disabled={isLoading}
           autoFocus
+          inputProps={{ 'data-testid': 'onboarding-org-name-input' }}
           sx={{ mb: 3 }}
         />
 
@@ -147,6 +150,7 @@ export default function OnboardingPage() {
           type="submit"
           variant="contained"
           disabled={isLoading}
+          data-testid="onboarding-create-org-button"
           sx={{
             py: 1.5,
             fontSize: '1.1rem',

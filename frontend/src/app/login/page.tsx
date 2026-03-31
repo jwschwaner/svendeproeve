@@ -55,6 +55,7 @@ export default function LoginPage() {
     >
       <Typography
         variant="h1"
+        data-testid="login-title"
         sx={{
           fontSize: '4rem',
           fontWeight: 400,
@@ -74,7 +75,7 @@ export default function LoginPage() {
         }}
       >
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" data-testid="login-error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -93,6 +94,7 @@ export default function LoginPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
+          inputProps={{ 'data-testid': 'login-email-input' }}
           sx={{ mb: 2 }}
         />
 
@@ -110,6 +112,7 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
+          inputProps={{ 'data-testid': 'login-password-input' }}
           sx={{ mb: 2 }}
         />
 
@@ -118,6 +121,7 @@ export default function LoginPage() {
           type="submit"
           variant="contained"
           disabled={isLoading}
+          data-testid="login-submit-button"
           sx={{
             py: 1.5,
             fontSize: '1.1rem',

@@ -10,21 +10,15 @@ test.describe("Login Flow", () => {
     userEmail = signupEmail;
 
     await page.goto("/register");
-    await page.getByPlaceholder("you@example.com").fill(signupEmail);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .first()
-      .fill(testUser.password);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .last()
-      .fill(testUser.password);
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-email-input").fill(signupEmail);
+    await page.getByTestId("register-password-input").fill(testUser.password);
+    await page.getByTestId("register-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("register-submit-button").click();
 
     await expect(page).toHaveURL("/onboarding", { timeout: 10000 });
 
-    await page.getByPlaceholder("My Company").fill(testUser.orgName!);
-    await page.getByRole("button", { name: "Create Organization" }).click();
+    await page.getByTestId("onboarding-org-name-input").fill(testUser.orgName!);
+    await page.getByTestId("onboarding-create-org-button").click();
 
     await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
 
@@ -33,26 +27,26 @@ test.describe("Login Flow", () => {
   });
 
   test("should login successfully with valid credentials", async ({ page }) => {
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.getByTestId("login-button").click();
 
     await expect(page).toHaveURL("/login");
 
-    await page.getByPlaceholder("you@example.com").fill(userEmail);
-    await page.getByPlaceholder("••••••••••••••••").fill(testUser.password);
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.getByTestId("login-email-input").fill(userEmail);
+    await page.getByTestId("login-password-input").fill(testUser.password);
+    await page.getByTestId("login-submit-button").click();
 
     await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
-    await expect(page.getByText("Weekly Statistics")).toBeVisible();
+    await expect(page.getByTestId("dashboard-weekly-stats-title")).toBeVisible();
   });
 
   test("should show error with invalid credentials", async ({ page }) => {
     await page.goto("/login");
 
-    await page.getByPlaceholder("you@example.com").fill("wrong@example.com");
-    await page.getByPlaceholder("••••••••••••••••").fill("wrongpassword");
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.getByTestId("login-email-input").fill("wrong@example.com");
+    await page.getByTestId("login-password-input").fill("wrongpassword");
+    await page.getByTestId("login-submit-button").click();
 
-    await expect(page.getByText("Invalid credentials")).toBeVisible();
+    await expect(page.getByTestId("login-error")).toBeVisible();
   });
 
   test("should show validation error when fields are empty", async ({
@@ -60,7 +54,7 @@ test.describe("Login Flow", () => {
   }) => {
     await page.goto("/login");
 
-    await page.getByRole("button", { name: "Login" }).click();
-    await expect(page.getByText("All fields are required")).toBeVisible();
+    await page.getByTestId("login-submit-button").click();
+    await expect(page.getByTestId("login-error")).toBeVisible();
   });
 });

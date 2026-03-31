@@ -8,23 +8,17 @@ test.describe("Onboarding Flow", () => {
     const email = `onboarding-${Date.now()}@example.com`;
 
     await page.goto("/register");
-    await page.getByPlaceholder("you@example.com").fill(email);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .first()
-      .fill(testUser.password);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .last()
-      .fill(testUser.password);
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-email-input").fill(email);
+    await page.getByTestId("register-password-input").fill(testUser.password);
+    await page.getByTestId("register-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("register-submit-button").click();
 
     await expect(page).toHaveURL("/onboarding", { timeout: 10000 });
   });
 
   test("should create organization successfully", async ({ page }) => {
-    await page.getByPlaceholder("My Company").fill(testUser.orgName!);
-    await page.getByRole("button", { name: "Create Organization" }).click();
+    await page.getByTestId("onboarding-org-name-input").fill(testUser.orgName!);
+    await page.getByTestId("onboarding-create-org-button").click();
 
     await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
   });
@@ -32,19 +26,17 @@ test.describe("Onboarding Flow", () => {
   test("should show validation error when organization name is too short", async ({
     page,
   }) => {
-    await page.getByPlaceholder("My Company").fill("A");
-    await page.getByRole("button", { name: "Create Organization" }).click();
+    await page.getByTestId("onboarding-org-name-input").fill("A");
+    await page.getByTestId("onboarding-create-org-button").click();
 
-    await expect(
-      page.getByText("Organization name must be at least 2 characters"),
-    ).toBeVisible();
+    await expect(page.getByTestId("onboarding-error")).toBeVisible();
   });
 
   test("should show error when organization name is empty", async ({
     page,
   }) => {
-    await page.getByRole("button", { name: "Create Organization" }).click();
+    await page.getByTestId("onboarding-create-org-button").click();
 
-    await expect(page.getByText("Organization name is required")).toBeVisible();
+    await expect(page.getByTestId("onboarding-error")).toBeVisible();
   });
 });

@@ -9,21 +9,15 @@ test.describe("Route Guards", () => {
     authenticatedEmail = `guard-test-${Date.now()}@example.com`;
 
     await page.goto("/register");
-    await page.getByPlaceholder("you@example.com").fill(authenticatedEmail);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .first()
-      .fill(testUser.password);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .last()
-      .fill(testUser.password);
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-email-input").fill(authenticatedEmail);
+    await page.getByTestId("register-password-input").fill(testUser.password);
+    await page.getByTestId("register-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("register-submit-button").click();
 
     await expect(page).toHaveURL("/onboarding", { timeout: 10000 });
 
-    await page.getByPlaceholder("My Company").fill(testUser.orgName!);
-    await page.getByRole("button", { name: "Create Organization" }).click();
+    await page.getByTestId("onboarding-org-name-input").fill(testUser.orgName!);
+    await page.getByTestId("onboarding-create-org-button").click();
 
     await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
   });
@@ -59,16 +53,10 @@ test.describe("Route Guards", () => {
 
     const newEmail = `no-org-${Date.now()}@example.com`;
     await page.goto("/register");
-    await page.getByPlaceholder("you@example.com").fill(newEmail);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .first()
-      .fill(testUser.password);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .last()
-      .fill(testUser.password);
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-email-input").fill(newEmail);
+    await page.getByTestId("register-password-input").fill(testUser.password);
+    await page.getByTestId("register-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("register-submit-button").click();
 
     await expect(page).toHaveURL("/onboarding", { timeout: 10000 });
 

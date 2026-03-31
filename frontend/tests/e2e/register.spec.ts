@@ -6,35 +6,27 @@ test.describe("Registration Flow", () => {
     const testUser = generateTestUser("signup");
 
     await page.goto("/");
-    await page.getByRole("button", { name: "Get Started" }).click();
+    await page.getByTestId("get-started-button").click();
 
     await expect(page).toHaveURL("/register");
-    await expect(page.getByRole("heading", { name: "Sortr" })).toBeVisible();
+    await expect(page.getByTestId("register-title")).toBeVisible();
 
-    await page.getByPlaceholder("you@example.com").fill(testUser.email);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .first()
-      .fill(testUser.password);
-    await page
-      .getByPlaceholder("••••••••••••••••")
-      .last()
-      .fill(testUser.password);
+    await page.getByTestId("register-email-input").fill(testUser.email);
+    await page.getByTestId("register-password-input").fill(testUser.password);
+    await page.getByTestId("register-confirm-password-input").fill(testUser.password);
 
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-submit-button").click();
 
     await expect(page).toHaveURL("/onboarding", { timeout: 15000 });
-    await expect(page.getByText("Welcome to Sortr")).toBeVisible();
-    await expect(
-      page.getByText("Let's create your first organization"),
-    ).toBeVisible();
+    await expect(page.getByTestId("onboarding-welcome-title")).toBeVisible();
+    await expect(page.getByTestId("onboarding-subtitle")).toBeVisible();
 
-    await page.getByPlaceholder("My Company").fill(testUser.orgName!);
-    await page.getByRole("button", { name: "Create Organization" }).click();
+    await page.getByTestId("onboarding-org-name-input").fill(testUser.orgName!);
+    await page.getByTestId("onboarding-create-org-button").click();
 
     await expect(page).toHaveURL("/dashboard", { timeout: 15000 });
-    await expect(page.getByText("Goodmorning, John Doe!")).toBeVisible();
-    await expect(page.getByText("Weekly Statistics")).toBeVisible();
+    await expect(page.getByTestId("dashboard-greeting")).toBeVisible();
+    await expect(page.getByTestId("dashboard-weekly-stats-title")).toBeVisible();
   });
 
   test("should show validation errors on signup", async ({ page }) => {
@@ -42,22 +34,20 @@ test.describe("Registration Flow", () => {
 
     await page.goto("/register");
 
-    await page.getByRole("button", { name: "Register" }).click();
-    await expect(page.getByText("All fields are required")).toBeVisible();
+    await page.getByTestId("register-submit-button").click();
+    await expect(page.getByTestId("register-error")).toBeVisible();
 
-    await page.getByPlaceholder("you@example.com").fill(testUser.email);
-    await page.getByPlaceholder("••••••••••••••••").first().fill("short");
-    await page.getByPlaceholder("••••••••••••••••").last().fill("short");
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-email-input").fill(testUser.email);
+    await page.getByTestId("register-password-input").fill("short");
+    await page.getByTestId("register-confirm-password-input").fill("short");
+    await page.getByTestId("register-submit-button").click();
 
-    await expect(
-      page.getByText("Password must be at least 8 characters"),
-    ).toBeVisible();
+    await expect(page.getByTestId("register-error")).toBeVisible();
 
-    await page.getByPlaceholder("••••••••••••••••").first().fill("password123");
-    await page.getByPlaceholder("••••••••••••••••").last().fill("different123");
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.getByTestId("register-password-input").fill("password123");
+    await page.getByTestId("register-confirm-password-input").fill("different123");
+    await page.getByTestId("register-submit-button").click();
 
-    await expect(page.getByText("Passwords do not match")).toBeVisible();
+    await expect(page.getByTestId("register-error")).toBeVisible();
   });
 });

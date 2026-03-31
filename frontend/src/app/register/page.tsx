@@ -66,6 +66,7 @@ export default function RegisterPage() {
     >
       <Typography
         variant="h1"
+        data-testid="register-title"
         sx={{
           fontSize: '4rem',
           fontWeight: 400,
@@ -85,7 +86,7 @@ export default function RegisterPage() {
         }}
       >
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" data-testid="register-error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -104,6 +105,7 @@ export default function RegisterPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
+          inputProps={{ 'data-testid': 'register-email-input' }}
           sx={{ mb: 2 }}
         />
 
@@ -121,6 +123,7 @@ export default function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
+          inputProps={{ 'data-testid': 'register-password-input' }}
           sx={{ mb: 2 }}
         />
 
@@ -138,6 +141,7 @@ export default function RegisterPage() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           disabled={isLoading}
+          inputProps={{ 'data-testid': 'register-confirm-password-input' }}
           sx={{ mb: 2 }}
         />
 
@@ -146,6 +150,7 @@ export default function RegisterPage() {
           type="submit"
           variant="contained"
           disabled={isLoading}
+          data-testid="register-submit-button"
           sx={{
             py: 1.5,
             fontSize: '1.1rem',

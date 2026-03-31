@@ -53,6 +53,7 @@ export default function Home() {
         >
           <Typography
             variant="h1"
+            data-testid="landing-title"
             sx={{
               fontSize: { xs: '3rem', md: '5rem' },
               fontWeight: 400,
@@ -65,6 +66,7 @@ export default function Home() {
 
           <Typography
             variant="h5"
+            data-testid="landing-tagline"
             sx={{
               mb: 2,
               color: 'text.secondary',
@@ -92,6 +94,7 @@ export default function Home() {
             <Button
               variant="contained"
               size="large"
+              data-testid="get-started-button"
               onClick={() => router.push('/register')}
               sx={{
                 py: 1.5,
@@ -106,6 +109,7 @@ export default function Home() {
             <Button
               variant="outlined"
               size="large"
+              data-testid="login-button"
               onClick={() => router.push('/login')}
               sx={{
                 py: 1.5,
