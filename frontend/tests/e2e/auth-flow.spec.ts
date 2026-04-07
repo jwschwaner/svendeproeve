@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 const testUser = {
+  fullName: `Test User ${Date.now()}`,
   email: `test-${Date.now()}@example.com`,
   password: "testpassword123",
   orgName: `Test Org ${Date.now()}`,
@@ -26,6 +27,7 @@ test.describe("Authentication Flow", () => {
     await expect(page).toHaveURL("/register");
     await expect(page.getByTestId("register-title")).toBeVisible();
 
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(testUser.email);
     await page.getByTestId("register-password-input").fill(testUser.password);
     await page.getByTestId("register-confirm-password-input").fill(testUser.password);
@@ -50,6 +52,7 @@ test.describe("Authentication Flow", () => {
     await page.getByTestId("register-submit-button").click();
     await expect(page.getByTestId("register-error")).toBeVisible();
 
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(testUser.email);
     await page.getByTestId("register-password-input").fill("short");
     await page.getByTestId("register-confirm-password-input").fill("short");
@@ -70,6 +73,7 @@ test.describe("Login Flow", () => {
     const signupEmail = `login-test-${Date.now()}@example.com`;
 
     await page.goto("/register");
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(signupEmail);
     await page.getByTestId("register-password-input").fill(testUser.password);
     await page.getByTestId("register-confirm-password-input").fill(testUser.password);
@@ -117,6 +121,7 @@ test.describe("Route Guards", () => {
     authenticatedEmail = `guard-test-${Date.now()}@example.com`;
 
     await page.goto("/register");
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(authenticatedEmail);
     await page.getByTestId("register-password-input").fill(testUser.password);
     await page.getByTestId("register-confirm-password-input").fill(testUser.password);
@@ -161,6 +166,7 @@ test.describe("Route Guards", () => {
 
     const newEmail = `no-org-${Date.now()}@example.com`;
     await page.goto("/register");
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(newEmail);
     await page.getByTestId("register-password-input").fill(testUser.password);
     await page.getByTestId("register-confirm-password-input").fill(testUser.password);
@@ -195,6 +201,7 @@ test.describe("Onboarding Flow", () => {
     const email = `onboarding-${Date.now()}@example.com`;
 
     await page.goto("/register");
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(email);
     await page.getByTestId("register-password-input").fill(testUser.password);
     await page.getByTestId("register-confirm-password-input").fill(testUser.password);

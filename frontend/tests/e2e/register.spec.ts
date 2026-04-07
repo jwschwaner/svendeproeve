@@ -11,6 +11,7 @@ test.describe("Registration Flow", () => {
     await expect(page).toHaveURL("/register");
     await expect(page.getByTestId("register-title")).toBeVisible();
 
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(testUser.email);
     await page.getByTestId("register-password-input").fill(testUser.password);
     await page.getByTestId("register-confirm-password-input").fill(testUser.password);
@@ -37,6 +38,7 @@ test.describe("Registration Flow", () => {
     await page.getByTestId("register-submit-button").click();
     await expect(page.getByTestId("register-error")).toBeVisible();
 
+    await page.getByTestId("register-fullname-input").fill(testUser.fullName);
     await page.getByTestId("register-email-input").fill(testUser.email);
     await page.getByTestId("register-password-input").fill("short");
     await page.getByTestId("register-confirm-password-input").fill("short");
