@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, TextField, Button, Typography, Alert, CircularProgress, Card, CardContent, List, ListItem, ListItemButton, ListItemText, Divider } from '@mui/material';
+import { Box, TextField, Button, Typography, Alert, Card, CardContent, List, ListItem, ListItemButton, ListItemText, Divider } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganizations, setStoredOrgId, getStoredOrgId } from '@/hooks/useOrganizations';
@@ -11,7 +11,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromLogin = searchParams.get('from') === 'login';
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const { organizations, isLoading: isLoadingOrgs, mutate } = useOrganizations();
 
   const [orgName, setOrgName] = useState('');
@@ -20,6 +20,7 @@ export default function OnboardingPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!isAuthenticated) {
       router.push('/login');
     } else if (fromLogin && !isLoadingOrgs && organizations.length > 0) {
@@ -32,7 +33,7 @@ export default function OnboardingPage() {
         router.push('/dashboard');
       }
     }
-  }, [isAuthenticated, fromLogin, isLoadingOrgs, organizations, router]);
+  }, [isAuthenticated, authLoading, fromLogin, isLoadingOrgs, organizations, router]);
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,25 +73,13 @@ export default function OnboardingPage() {
     router.push('/dashboard');
   };
 
-  if (isLoadingOrgs) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'background.default',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (authLoading || isLoadingOrgs || !isAuthenticated) return null;
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  const storedOrgId = getStoredOrgId();
+  const willAutoRedirect = fromLogin && organizations.length > 0 && (
+    organizations.some(o => o.id === storedOrgId) || organizations.length === 1
+  );
+  if (willAutoRedirect) return null;
 
   const hasOrganizations = organizations.length > 0;
 

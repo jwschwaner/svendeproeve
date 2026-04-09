@@ -188,14 +188,14 @@ export default function MailAccountManagementPage() {
           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
           <Box component="form" onSubmit={handleCreate}>
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-              <TextField label="Account Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} disabled={isSubmitting} required sx={{ flex: '1 1 180px' }} />
-              <TextField label="IMAP Host" value={form.imap_host} onChange={e => setForm(f => ({ ...f, imap_host: e.target.value }))} disabled={isSubmitting} required sx={{ flex: '1 1 200px' }} />
-              <TextField label="Port" type="number" value={form.imap_port} onChange={e => setForm(f => ({ ...f, imap_port: parseInt(e.target.value) || 993 }))} disabled={isSubmitting} required sx={{ flex: '0 1 100px' }} inputProps={{ min: 1, max: 65535 }} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: 2, mb: 2 }}>
+              <TextField label="Account Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} disabled={isSubmitting} required />
+              <TextField label="IMAP Host" value={form.imap_host} onChange={e => setForm(f => ({ ...f, imap_host: e.target.value }))} disabled={isSubmitting} required />
+              <TextField label="Port" type="number" value={form.imap_port} onChange={e => setForm(f => ({ ...f, imap_port: parseInt(e.target.value) || 993 }))} disabled={isSubmitting} required inputProps={{ min: 1, max: 65535 }} />
             </Box>
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-              <TextField label="Username" value={form.imap_username} onChange={e => setForm(f => ({ ...f, imap_username: e.target.value }))} disabled={isSubmitting} required sx={{ flex: '1 1 200px' }} />
-              <TextField label="Password" type="password" value={form.imap_password} onChange={e => setForm(f => ({ ...f, imap_password: e.target.value }))} disabled={isSubmitting} required sx={{ flex: '1 1 200px' }} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: 2, mb: 2, alignItems: 'center' }}>
+              <TextField label="Username" value={form.imap_username} onChange={e => setForm(f => ({ ...f, imap_username: e.target.value }))} disabled={isSubmitting} required />
+              <TextField label="Password" type="password" value={form.imap_password} onChange={e => setForm(f => ({ ...f, imap_password: e.target.value }))} disabled={isSubmitting} required />
               <FormControlLabel
                 control={<Switch checked={form.use_ssl} onChange={e => setForm(f => ({ ...f, use_ssl: e.target.checked }))} disabled={isSubmitting} />}
                 label="SSL"

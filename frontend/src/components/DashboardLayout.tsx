@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Box,
@@ -69,16 +69,10 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, userName, userRole }: DashboardLayoutProps) {
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+  const pathname = usePathname();
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({ Categories: true });
   const { signout, user } = useAuth();
   const { inboxes, currentOrg } = useInboxes({ userId: user?.id, userRole });
-  const pathname = usePathname();
-
-  useEffect(() => {
-    if (inboxes.length > 0 && inboxes.length < 10) {
-      setOpenMenus(prev => ({ ...prev, Categories: true }));
-    }
-  }, [inboxes.length]);
 
   const inboxMenuItem: MenuItem = {
     label: 'Categories',
