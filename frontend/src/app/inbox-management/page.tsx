@@ -186,6 +186,7 @@ export default function InboxManagementPage() {
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 disabled={isSubmitting}
                 required
+                inputProps={{ 'data-testid': 'category-name-input' }}
               />
               <TextField
                 label="Description (for AI)"
@@ -195,6 +196,7 @@ export default function InboxManagementPage() {
                 multiline
                 rows={3}
                 required
+                inputProps={{ 'data-testid': 'category-description-input' }}
               />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ position: 'relative', width: 36, height: 36, flexShrink: 0 }}>
@@ -256,6 +258,7 @@ export default function InboxManagementPage() {
             )}
 
             <Button type="submit" variant="contained"
+              data-testid="category-submit"
               disabled={isSubmitting || !form.name.trim() || !form.description?.trim()}
               sx={{ px: 4, py: 1.5, fontWeight: 600, textTransform: 'none' }}>
               {isSubmitting ? 'Creating...' : 'Create Category'}
@@ -282,7 +285,7 @@ export default function InboxManagementPage() {
             </TableHead>
             <TableBody>
               {inboxes.length > 0 ? inboxes.map(inbox => (
-                <TableRow key={inbox.id} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+                <TableRow key={inbox.id} data-testid={`category-row-${inbox.id}`} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
                   <TableCell sx={{ color: 'white' }}>
                     {inbox.name}
                     {inbox.is_system && (
@@ -307,10 +310,10 @@ export default function InboxManagementPage() {
                       <IoLockClosed size={16} color="#555" />
                     ) : (
                       <>
-                        <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => openEdit(inbox)}>
+                        <IconButton size="small" sx={{ color: 'text.secondary' }} data-testid={`category-edit-${inbox.id}`} onClick={() => openEdit(inbox)}>
                           <IoPencil size={18} />
                         </IconButton>
-                        <IconButton size="small" sx={{ color: '#f44336' }} onClick={() => setDeleteTarget(inbox)}>
+                        <IconButton size="small" sx={{ color: '#f44336' }} data-testid={`category-delete-${inbox.id}`} onClick={() => setDeleteTarget(inbox)}>
                           <IoTrash size={18} />
                         </IconButton>
                       </>
@@ -335,8 +338,8 @@ export default function InboxManagementPage() {
         <DialogContent>
           {editError && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{editError}</Alert>}
           <Box component="form" id="edit-form" onSubmit={handleEdit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="Name" value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} disabled={isEditSubmitting} fullWidth />
-            <TextField label="Description (for AI)" value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} disabled={isEditSubmitting} fullWidth multiline rows={2} />
+            <TextField label="Name" value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} disabled={isEditSubmitting} fullWidth inputProps={{ 'data-testid': 'category-edit-name' }} />
+            <TextField label="Description (for AI)" value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} disabled={isEditSubmitting} fullWidth multiline rows={2} inputProps={{ 'data-testid': 'category-edit-description' }} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{ position: 'relative', width: 36, height: 36, flexShrink: 0 }}>
                 <Box sx={{
@@ -388,7 +391,7 @@ export default function InboxManagementPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setEditInbox(null)} disabled={isEditSubmitting}>Cancel</Button>
-          <Button type="submit" form="edit-form" variant="contained" disabled={isEditSubmitting}>
+          <Button type="submit" form="edit-form" variant="contained" disabled={isEditSubmitting} data-testid="category-edit-save">
             {isEditSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
@@ -402,7 +405,7 @@ export default function InboxManagementPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteTarget(null)} disabled={isDeleting}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained" disabled={isDeleting}>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={isDeleting} data-testid="category-delete-confirm">
             {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
