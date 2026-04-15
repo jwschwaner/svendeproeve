@@ -15,6 +15,7 @@ from pymongo.errors import BulkWriteError
 
 from app.categorize import pick_category_id
 from app.email_parse_min import extract_email
+from app.email_threading import inherited_category_id, is_reply_message, set_thread_category
 
 
 def _dedupe_key(email: dict[str, Any]) -> str:
@@ -218,17 +219,32 @@ def poll_mail_account_once(
                     .limit(25)
                 )
                 categorized_n = 0
+                model = os.environ.get("OPENAI_MODEL", "o4-mini")
                 for e in pending:
-                    cid = pick_category_id(
-                        model=os.environ.get("OPENAI_MODEL", "o4-mini"),
-                        categories=cat_payload,
-                        uncategorised_category_id=unc_id,
-                        email=e,
-                    )
                     now = datetime.now(timezone.utc)
-                    emails.update_one(
-                        {"_id": e["_id"]},
-                        {"$set": {"category_id": cid, "categorized_at": now, "categorization_model": os.environ.get("OPENAI_MODEL", "o4-mini")}},
+                    if is_reply_message(e):
+                        cid = inherited_category_id(
+                            emails,
+                            org_id,
+                            e.get("thread_id") or "",
+                            unc_id,
+                            exclude_email_id=e["_id"],
+                        )
+                    else:
+                        cid = pick_category_id(
+                            model=model,
+                            categories=cat_payload,
+                            uncategorised_category_id=unc_id,
+                            email=e,
+                        )
+                    set_thread_category(
+                        emails,
+                        org_id,
+                        e.get("thread_id") or "",
+                        e["_id"],
+                        cid,
+                        now,
+                        model,
                     )
                     categorized_n += 1
                 if categorized_n:

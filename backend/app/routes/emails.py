@@ -10,6 +10,7 @@ from pymongo import UpdateOne
 from pymongo.errors import BulkWriteError
 
 from app.categorize import pick_category_id
+from app.email_threading import inherited_category_id, is_reply_message, set_thread_category
 from app.db import (
     categories_collection,
     emails_collection,
@@ -302,22 +303,37 @@ def categorize_emails(
     uncategorised = 0
     skipped = 0
 
+    model = os.environ.get("OPENAI_MODEL", "o4-mini")
     for e in emails:
         processed += 1
         if not payload.force and e.get("category_id") not in (None, unc_id) and e.get("category_id") is not None:
             skipped += 1
             continue
 
-        cid = pick_category_id(
-            model=os.environ.get("OPENAI_MODEL", "o4-mini"),
-            categories=categories,
-            uncategorised_category_id=unc_id,
-            email=e,
-        )
         now = datetime.now(timezone.utc)
-        emails_collection.update_one(
-            {"_id": e["_id"]},
-            {"$set": {"category_id": cid, "categorized_at": now, "categorization_model": os.environ.get("OPENAI_MODEL", "o4-mini")}},
+        if is_reply_message(e):
+            cid = inherited_category_id(
+                emails_collection,
+                org_id,
+                e.get("thread_id") or "",
+                unc_id,
+                exclude_email_id=e["_id"],
+            )
+        else:
+            cid = pick_category_id(
+                model=model,
+                categories=categories,
+                uncategorised_category_id=unc_id,
+                email=e,
+            )
+        set_thread_category(
+            emails_collection,
+            org_id,
+            e.get("thread_id") or "",
+            e["_id"],
+            cid,
+            now,
+            model,
         )
         if cid == unc_id:
             uncategorised += 1
