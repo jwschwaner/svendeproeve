@@ -26,6 +26,8 @@ export interface CategoryUpdateData {
   mail_account_ids?: string[];
 }
 
+export type EmailSeverity = 'critical' | 'non_critical';
+
 export interface Email {
   id: string;
   org_id: string;
@@ -37,6 +39,8 @@ export interface Email {
   message_id: string;
   thread_id: string;
   category_id: string | null;
+  /** AI guess or user override; absent on legacy rows until set. */
+  severity?: EmailSeverity | null;
   case_status: string;
   created_at: string;
 }

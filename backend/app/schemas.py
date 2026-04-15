@@ -263,6 +263,13 @@ class CategorizeEmailsResult(BaseModel):
     skipped: int
 
 
+EmailSeverity = Literal["critical", "non_critical"]
+
+
+class EmailSeverityUpdateRequest(BaseModel):
+    severity: EmailSeverity
+
+
 class EmailOut(BaseModel):
     id: str
     org_id: str
@@ -274,5 +281,6 @@ class EmailOut(BaseModel):
     message_id: str
     thread_id: str
     category_id: Optional[str] = None
+    severity: Optional[EmailSeverity] = None
     case_status: str
     created_at: datetime

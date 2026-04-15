@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo import UpdateOne
 from pymongo.errors import BulkWriteError
 
-from app.categorize import pick_category_id
-from app.email_threading import inherited_category_id, is_reply_message, set_thread_category
+from app.categorize import pick_category_and_severity
+from app.email_threading import inherited_thread_categorization, is_reply_message, set_thread_categorization
 from app.db import (
     categories_collection,
     emails_collection,
@@ -18,12 +18,14 @@ from app.db import (
     thread_cases_collection,
 )
 from app.dependencies import get_current_user, require_org_membership
+from app.utils import parse_object_id
 from app.schemas import (
     CategorizeEmailsRequest,
     CategorizeEmailsResult,
     EmailIngestRequest,
     EmailIngestResult,
     EmailOut,
+    EmailSeverityUpdateRequest,
     ThreadCaseOut,
 )
 
@@ -156,6 +158,8 @@ def open_thread_case(
 
 
 def _to_email_out(doc: dict) -> EmailOut:
+    raw_sev = doc.get("severity")
+    severity = raw_sev if raw_sev in ("critical", "non_critical") else None
     return EmailOut(
         id=str(doc["_id"]),
         org_id=doc["org_id"],
@@ -167,6 +171,7 @@ def _to_email_out(doc: dict) -> EmailOut:
         message_id=doc.get("message_id", ""),
         thread_id=doc.get("thread_id", ""),
         category_id=doc.get("category_id"),
+        severity=severity,
         case_status=doc.get("case_status", "open"),
         created_at=doc["created_at"],
     )
@@ -230,6 +235,32 @@ def get_uncategorized_count(
         ],
     }
     return {"count": emails_collection.count_documents(q)}
+
+
+@router.patch("/{email_id}/severity", response_model=EmailOut)
+def patch_email_severity(
+    org_id: str,
+    email_id: str,
+    payload: EmailSeverityUpdateRequest,
+    current_user: dict = Depends(get_current_user),
+) -> EmailOut:
+    """Set severity for the whole thread (same thread_id) when applicable."""
+    require_org_membership(org_id, str(current_user["_id"]))
+    oid = parse_object_id(email_id, "email_id")
+    doc = emails_collection.find_one({"_id": oid, "org_id": org_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Email not found")
+    sev = payload.severity
+    tid = (doc.get("thread_id") or "").strip()
+    update = {"$set": {"severity": sev}}
+    if tid:
+        emails_collection.update_many({"org_id": org_id, "thread_id": tid}, update)
+    else:
+        emails_collection.update_one({"_id": oid, "org_id": org_id}, update)
+    updated = emails_collection.find_one({"_id": oid, "org_id": org_id})
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Failed to fetch updated email")
+    return _to_email_out(updated)
 
 
 @router.post("/ingest", response_model=EmailIngestResult)
@@ -339,7 +370,8 @@ def categorize_emails(
     if not payload.force:
         query["$or"] = [{"category_id": None}, {"category_id": {"$exists": False}}, {"category_id": unc_id}]
 
-    emails = list(emails_collection.find(query).sort("created_at", -1).limit(payload.limit))
+    # Oldest first so the first message in a thread is categorized before replies (seen_thread_keys skips the rest).
+    emails = list(emails_collection.find(query).sort("created_at", 1).limit(payload.limit))
     processed = 0
     categorized = 0
     uncategorised = 0
@@ -361,7 +393,7 @@ def categorize_emails(
         seen_thread_keys.add(thread_key)
         now = datetime.now(timezone.utc)
         if is_reply_message(e):
-            cid = inherited_category_id(
+            cid, sev = inherited_thread_categorization(
                 emails_collection,
                 org_id,
                 thread_id,
@@ -369,20 +401,21 @@ def categorize_emails(
                 exclude_email_id=e["_id"],
             )
         else:
-            cid = pick_category_id(
+            cid, sev = pick_category_and_severity(
                 model=model,
                 categories=categories,
                 uncategorised_category_id=unc_id,
                 email=e,
             )
-        set_thread_category(
+        set_thread_categorization(
             emails_collection,
             org_id,
             thread_id,
             e["_id"],
-            cid,
-            now,
-            model,
+            category_id=cid,
+            severity=sev,
+            now=now,
+            model=model,
         )
         if cid == unc_id:
             uncategorised += 1
