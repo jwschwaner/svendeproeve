@@ -34,11 +34,6 @@ def _uncategorised_category_doc(org_id: str) -> Optional[dict[str, Any]]:
     return categories_collection.find_one({"org_id": org_id, "is_system": True, "name": "Uncategorised"})
 
 
-def _is_uncategorised_category_id(org_id: str, category_id: str) -> bool:
-    unc = _uncategorised_category_doc(org_id)
-    return bool(unc and str(unc["_id"]) == category_id)
-
-
 def _dedupe_key(org_id: str, email: dict[str, Any]) -> str:
     """
     Prefer Message-ID (what Gmail uses for threading/dedup in practice).
@@ -193,9 +188,9 @@ def list_emails(
             )
             if not access:
                 raise HTTPException(status_code=403, detail="No access to this category")
-        if _is_uncategorised_category_id(org_id, category_id):
-            unc = _uncategorised_category_doc(org_id)
-            unc_id_str = str(unc["_id"]) if unc else ""
+        unc = _uncategorised_category_doc(org_id)
+        if unc is not None and str(unc["_id"]) == category_id:
+            unc_id_str = str(unc["_id"])
             query["$or"] = [
                 {"category_id": None},
                 {"category_id": {"$exists": False}},
@@ -349,6 +344,7 @@ def categorize_emails(
     categorized = 0
     uncategorised = 0
     skipped = 0
+    seen_thread_keys: set[str] = set()
 
     model = os.environ.get("OPENAI_MODEL", "o4-mini")
     for e in emails:
@@ -357,12 +353,18 @@ def categorize_emails(
             skipped += 1
             continue
 
+        thread_id = (e.get("thread_id") or "").strip()
+        thread_key = thread_id or str(e["_id"])
+        if thread_key in seen_thread_keys:
+            skipped += 1
+            continue
+        seen_thread_keys.add(thread_key)
         now = datetime.now(timezone.utc)
         if is_reply_message(e):
             cid = inherited_category_id(
                 emails_collection,
                 org_id,
-                e.get("thread_id") or "",
+                thread_id,
                 unc_id,
                 exclude_email_id=e["_id"],
             )
@@ -376,7 +378,7 @@ def categorize_emails(
         set_thread_category(
             emails_collection,
             org_id,
-            e.get("thread_id") or "",
+            thread_id,
             e["_id"],
             cid,
             now,

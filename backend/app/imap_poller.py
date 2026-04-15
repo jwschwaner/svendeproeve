@@ -218,15 +218,25 @@ def poll_mail_account_once(
                     .sort("created_at", -1)
                     .limit(25)
                 )
+                # One pass per thread: set_thread_category updates all messages with that thread_id.
+                pending_by_thread: dict[str, dict[str, Any]] = {}
+                for e in pending:
+                    tid = (e.get("thread_id") or "").strip()
+                    thread_key = tid or str(e["_id"])
+                    if thread_key not in pending_by_thread:
+                        pending_by_thread[thread_key] = e
+                pending = list(pending_by_thread.values())
+
                 categorized_n = 0
                 model = os.environ.get("OPENAI_MODEL", "o4-mini")
                 for e in pending:
                     now = datetime.now(timezone.utc)
+                    thread_id = (e.get("thread_id") or "").strip()
                     if is_reply_message(e):
                         cid = inherited_category_id(
                             emails,
                             org_id,
-                            e.get("thread_id") or "",
+                            thread_id,
                             unc_id,
                             exclude_email_id=e["_id"],
                         )
@@ -240,7 +250,7 @@ def poll_mail_account_once(
                     set_thread_category(
                         emails,
                         org_id,
-                        e.get("thread_id") or "",
+                        thread_id,
                         e["_id"],
                         cid,
                         now,

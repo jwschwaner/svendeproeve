@@ -34,7 +34,7 @@ def inherited_category_id(
             "org_id": org_id,
             "thread_id": thread_id,
             "_id": {"$ne": exclude_email_id},
-            "category_id": {"$ne": None},
+            "category_id": {"$exists": True, "$ne": None},
         },
         sort=[("created_at", 1)],
     )
