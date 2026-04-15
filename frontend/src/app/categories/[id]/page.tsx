@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -35,6 +35,36 @@ function formatCaseStatus(raw: string): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 }
 
+/**
+ * One row per thread: latest message drives From / last activity / status;
+ * subject is always taken from the first email in the thread (earliest created_at).
+ */
+function oneRowPerThread(emails: Email[]): Email[] {
+  const groups = new Map<string, Email[]>();
+  for (const e of emails) {
+    const threadKey = (e.thread_id || '').trim() || e.id;
+    const list = groups.get(threadKey) || [];
+    list.push(e);
+    groups.set(threadKey, list);
+  }
+
+  const rows: Email[] = [];
+  for (const list of groups.values()) {
+    const sorted = [...list].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const first = sorted[0];
+    const latest = sorted[sorted.length - 1];
+    rows.push({
+      ...latest,
+      subject: first.subject ?? '',
+    });
+  }
+  return rows.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
 export default function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user, token } = useAuth();
@@ -56,6 +86,8 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
     ([_, orgId, categoryId, tok]) => categoryApi.listEmails(orgId, categoryId, tok),
     { revalidateOnFocus: false }
   );
+
+  const threadRows = useMemo(() => (emails?.length ? oneRowPerThread(emails) : []), [emails]);
 
   if (isLoadingMembers || isLoadingCategories) {
     return (
@@ -99,13 +131,16 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
               <TableRow>
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Subject</TableCell>
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>From</TableCell>
-                <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Date</TableCell>
+                <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Last activity</TableCell>
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {emails && emails.length > 0 ? emails.map(email => (
-                <TableRow key={email.id} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+              {threadRows.length > 0 ? threadRows.map(email => (
+                <TableRow
+                  key={(email.thread_id || '').trim() || email.id}
+                  sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}
+                >
                   <TableCell sx={{ color: 'white' }}>{email.subject || '(no subject)'}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{email.sender}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{formatDate(email.date || email.created_at)}</TableCell>
@@ -125,7 +160,7 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
               )) : (
                 <TableRow>
                   <TableCell colSpan={4} sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-                    No emails in this category yet.
+                    No threads in this category yet.
                   </TableCell>
                 </TableRow>
               )}
