@@ -30,6 +30,15 @@ from app.schemas import (
 router = APIRouter(prefix="/organizations/{org_id}/emails", tags=["emails"])
 
 
+def _uncategorised_category_doc(org_id: str) -> Optional[dict[str, Any]]:
+    return categories_collection.find_one({"org_id": org_id, "is_system": True, "name": "Uncategorised"})
+
+
+def _is_uncategorised_category_id(org_id: str, category_id: str) -> bool:
+    unc = _uncategorised_category_doc(org_id)
+    return bool(unc and str(unc["_id"]) == category_id)
+
+
 def _dedupe_key(org_id: str, email: dict[str, Any]) -> str:
     """
     Prefer Message-ID (what Gmail uses for threading/dedup in practice).
@@ -184,10 +193,48 @@ def list_emails(
             )
             if not access:
                 raise HTTPException(status_code=403, detail="No access to this category")
-        query["category_id"] = category_id
+        if _is_uncategorised_category_id(org_id, category_id):
+            unc = _uncategorised_category_doc(org_id)
+            unc_id_str = str(unc["_id"]) if unc else ""
+            query["$or"] = [
+                {"category_id": None},
+                {"category_id": {"$exists": False}},
+                {"category_id": unc_id_str},
+            ]
+        else:
+            query["category_id"] = category_id
 
     docs = list(emails_collection.find(query).sort("created_at", -1).limit(200))
     return [_to_email_out(d) for d in docs]
+
+
+@router.get("/uncategorized-count")
+def get_uncategorized_count(
+    org_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, int]:
+    """Count open-case emails with no category, missing category, or system Uncategorised."""
+    membership = require_org_membership(org_id, str(current_user["_id"]))
+    unc = _uncategorised_category_doc(org_id)
+    if not unc:
+        return {"count": 0}
+    unc_id_str = str(unc["_id"])
+    if membership["role"] == "member":
+        access = member_category_access_collection.find_one(
+            {"org_id": org_id, "user_id": str(current_user["_id"]), "category_id": unc_id_str}
+        )
+        if not access:
+            raise HTTPException(status_code=403, detail="No access to this category")
+    q: dict[str, Any] = {
+        "org_id": org_id,
+        "case_status": "open",
+        "$or": [
+            {"category_id": None},
+            {"category_id": {"$exists": False}},
+            {"category_id": unc_id_str},
+        ],
+    }
+    return {"count": emails_collection.count_documents(q)}
 
 
 @router.post("/ingest", response_model=EmailIngestResult)
