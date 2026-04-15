@@ -27,6 +27,14 @@ function formatDate(raw: string): string {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function formatCaseStatus(raw: string): string {
+  const s = (raw || '').toLowerCase();
+  if (s === 'open') return 'Open';
+  if (s === 'closed') return 'Closed';
+  if (!raw) return '—';
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
+
 export default function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user, token } = useAuth();
@@ -103,11 +111,11 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
                   <TableCell sx={{ color: 'text.secondary' }}>{formatDate(email.date || email.created_at)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={email.case_status}
+                      label={formatCaseStatus(email.case_status)}
                       size="small"
                       sx={{
-                        bgcolor: email.case_status === 'open' ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.08)',
-                        color: email.case_status === 'open' ? '#4caf50' : 'text.secondary',
+                        bgcolor: email.case_status?.toLowerCase() === 'open' ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.08)',
+                        color: email.case_status?.toLowerCase() === 'open' ? '#4caf50' : 'text.secondary',
                         fontWeight: 600,
                         fontSize: '0.7rem',
                       }}
