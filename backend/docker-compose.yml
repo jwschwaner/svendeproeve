@@ -34,6 +34,9 @@ services:
     restart: unless-stopped
     depends_on:
       - mongo
+    # Same as api: use host code so categorization/threading changes apply without rebuilding the image.
+    volumes:
+      - ./app:/app/app
     env_file: ./.env.local
     environment:
       - PYTHONUNBUFFERED=1

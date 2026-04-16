@@ -13,9 +13,9 @@ from pymongo import MongoClient, UpdateOne
 from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError
 
-from app.categorize import pick_category_id
+from app.categorize import pick_category_and_severity
 from app.email_parse_min import extract_email
-from app.email_threading import inherited_category_id, is_reply_message, set_thread_category
+from app.email_threading import inherited_thread_categorization, is_reply_message, set_thread_categorization
 
 
 def _dedupe_key(email: dict[str, Any]) -> str:
@@ -215,10 +215,11 @@ def poll_mail_account_once(
                             "categorized_at": {"$exists": False},
                         }
                     )
-                    .sort("created_at", -1)
+                    .sort("created_at", 1)
                     .limit(25)
                 )
-                # One pass per thread: set_thread_category updates all messages with that thread_id.
+                # One pass per thread: set_thread_categorization updates all messages with that thread_id.
+                # Oldest-first so we keep the root message per thread (first wins), not a reply, before deduping.
                 pending_by_thread: dict[str, dict[str, Any]] = {}
                 for e in pending:
                     tid = (e.get("thread_id") or "").strip()
@@ -233,7 +234,7 @@ def poll_mail_account_once(
                     now = datetime.now(timezone.utc)
                     thread_id = (e.get("thread_id") or "").strip()
                     if is_reply_message(e):
-                        cid = inherited_category_id(
+                        cid, sev = inherited_thread_categorization(
                             emails,
                             org_id,
                             thread_id,
@@ -241,20 +242,21 @@ def poll_mail_account_once(
                             exclude_email_id=e["_id"],
                         )
                     else:
-                        cid = pick_category_id(
+                        cid, sev = pick_category_and_severity(
                             model=model,
                             categories=cat_payload,
                             uncategorised_category_id=unc_id,
                             email=e,
                         )
-                    set_thread_category(
+                    set_thread_categorization(
                         emails,
                         org_id,
                         thread_id,
                         e["_id"],
-                        cid,
-                        now,
-                        model,
+                        category_id=cid,
+                        severity=sev,
+                        now=now,
+                        model=model,
                     )
                     categorized_n += 1
                 if categorized_n:

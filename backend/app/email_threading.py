@@ -7,6 +7,8 @@ from typing import Any
 
 from pymongo.collection import Collection
 
+from app.categorize import DEFAULT_SEVERITY
+
 
 def is_reply_message(email: dict[str, Any]) -> bool:
     """True if this looks like a follow-up in a thread (not the initial message)."""
@@ -15,20 +17,20 @@ def is_reply_message(email: dict[str, Any]) -> bool:
     return bool(irt) or bool(refs)
 
 
-def inherited_category_id(
+def inherited_thread_categorization(
     emails: Collection,
     org_id: str,
     thread_id: str,
     unc_id: str,
     *,
     exclude_email_id: Any,
-) -> str:
+) -> tuple[str, str]:
     """
-    Category from the earliest other message in the same thread that already has a category.
-    Falls back to unc_id if none (e.g. first reply before root is categorized).
+    Category and severity from the earliest other message in the thread that already has a category.
+    Falls back to (unc_id, non_critical) if none.
     """
     if not (thread_id or "").strip():
-        return unc_id
+        return unc_id, DEFAULT_SEVERITY
     sibling = emails.find_one(
         {
             "org_id": org_id,
@@ -39,23 +41,32 @@ def inherited_category_id(
         sort=[("created_at", 1)],
     )
     if sibling and sibling.get("category_id") is not None:
-        return str(sibling["category_id"])
-    return unc_id
+        cid = str(sibling["category_id"])
+        sev = sibling.get("severity") or DEFAULT_SEVERITY
+        if sev not in ("critical", "non_critical"):
+            sev = DEFAULT_SEVERITY
+        return cid, sev
+    return unc_id, DEFAULT_SEVERITY
 
 
-def set_thread_category(
+def set_thread_categorization(
     emails: Collection,
     org_id: str,
     thread_id: str,
     email_id: Any,
+    *,
     category_id: str,
+    severity: str,
     now: datetime,
     model: str,
 ) -> None:
-    """Assign category to the whole thread when thread_id is known, else only this document."""
+    """Assign category and severity to the whole thread when thread_id is known, else only this document."""
+    if severity not in ("critical", "non_critical"):
+        severity = DEFAULT_SEVERITY
     payload = {
         "$set": {
             "category_id": category_id,
+            "severity": severity,
             "categorized_at": now,
             "categorization_model": model,
         }
