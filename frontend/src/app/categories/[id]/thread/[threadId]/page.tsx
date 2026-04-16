@@ -400,7 +400,7 @@ export default function ThreadPage({
                   overflow: { xs: 'visible', lg: 'auto' },
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 2,
+                  gap: 1.5,
                 }}
               >
                 {!emails?.length ? (
