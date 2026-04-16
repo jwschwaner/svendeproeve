@@ -16,6 +16,17 @@ export interface CategorizeEmailsResult {
 }
 
 export const emailsApi = {
+  listAssignedToMe: async (orgId: string, token: string): Promise<Email[]> => {
+    const res = await apiFetch(`/organizations/${orgId}/emails/assigned-to-me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch assigned threads');
+    }
+    return res.json();
+  },
+
   /** Emails in one thread for a category, oldest first (requires category_id on the API). */
   listThreadEmails: async (
     orgId: string,

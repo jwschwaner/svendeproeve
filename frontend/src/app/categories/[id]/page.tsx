@@ -193,6 +193,7 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>From</TableCell>
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Last activity</TableCell>
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Severity</TableCell>
+                <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Assigned to</TableCell>
                 <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>Status</TableCell>
               </TableRow>
             </TableHead>
@@ -216,13 +217,16 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
                   <TableCell>
                     <SeverityChip severity={email.severity} />
                   </TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>
+                    {email.assigned_to_name || '—'}
+                  </TableCell>
                   <TableCell>
                     <CaseStatusChip caseStatus={email.case_status} />
                   </TableCell>
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={5} sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={6} sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
                     No threads in this category yet.
                   </TableCell>
                 </TableRow>

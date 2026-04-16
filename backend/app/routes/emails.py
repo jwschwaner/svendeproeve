@@ -327,11 +327,47 @@ def _mail_account_name_map(org_id: str, docs: list[dict[str, Any]]) -> dict[str,
     return out
 
 
-def _to_email_out(doc: dict[str, Any], *, account_names: dict[str, str]) -> EmailOut:
+def _thread_assignment_map(org_id: str, docs: list[dict[str, Any]]) -> dict[str, tuple[Optional[str], Optional[str]]]:
+    tids: set[str] = set()
+    for d in docs:
+        tid = (d.get("thread_id") or "").strip()
+        if tid:
+            tids.add(tid)
+    if not tids:
+        return {}
+    cases = thread_cases_collection.find({"org_id": org_id, "thread_id": {"$in": list(tids)}, "assigned_to": {"$ne": None}})
+    user_ids: set[str] = set()
+    tid_to_uid: dict[str, str] = {}
+    for c in cases:
+        uid = c.get("assigned_to")
+        if uid:
+            tid_to_uid[c["thread_id"]] = uid
+            user_ids.add(uid)
+    if not user_ids:
+        return {}
+    oids = [ObjectId(u) for u in user_ids if ObjectId.is_valid(u)]
+    user_map: dict[str, str] = {}
+    if oids:
+        for u in users_collection.find({"_id": {"$in": oids}}):
+            user_map[str(u["_id"])] = (u.get("full_name") or u.get("email") or "").strip() or str(u["_id"])
+    result: dict[str, tuple[Optional[str], Optional[str]]] = {}
+    for tid, uid in tid_to_uid.items():
+        result[tid] = (uid, user_map.get(uid))
+    return result
+
+
+def _to_email_out(
+    doc: dict[str, Any],
+    *,
+    account_names: dict[str, str],
+    assignments: dict[str, tuple[Optional[str], Optional[str]]],
+) -> EmailOut:
     raw_sev = doc.get("severity")
     severity = raw_sev if raw_sev in ("critical", "non_critical") else None
     mid = _mail_account_id_str(doc)
     mname = account_names.get(mid) if mid else None
+    tid = (doc.get("thread_id") or "").strip()
+    assigned_to, assigned_to_name = assignments.get(tid, (None, None))
     return EmailOut(
         id=str(doc["_id"]),
         org_id=doc["org_id"],
@@ -349,12 +385,43 @@ def _to_email_out(doc: dict[str, Any], *, account_names: dict[str, str]) -> Emai
         mail_account_id=mid,
         mailbox=doc.get("mailbox"),
         mail_account_name=mname,
+        assigned_to=assigned_to,
+        assigned_to_name=assigned_to_name,
     )
 
 
 def _emails_to_out(org_id: str, docs: list[dict[str, Any]]) -> list[EmailOut]:
     names = _mail_account_name_map(org_id, docs)
-    return [_to_email_out(d, account_names=names) for d in docs]
+    assignments = _thread_assignment_map(org_id, docs)
+    return [_to_email_out(d, account_names=names, assignments=assignments) for d in docs]
+
+
+@router.get("/assigned-to-me", response_model=list[EmailOut])
+def list_my_assigned_threads(
+    org_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> list[EmailOut]:
+    """Return one representative email per thread assigned to the current user."""
+    require_org_membership(org_id, str(current_user["_id"]))
+    uid = str(current_user["_id"])
+    cases = list(thread_cases_collection.find({"org_id": org_id, "assigned_to": uid}))
+    if not cases:
+        return []
+    thread_ids = [c["thread_id"] for c in cases if c.get("thread_id")]
+    if not thread_ids:
+        return []
+    docs = list(
+        emails_collection.find({"org_id": org_id, "thread_id": {"$in": thread_ids}})
+        .sort("created_at", 1)
+    )
+    seen: set[str] = set()
+    first_per_thread: list[dict[str, Any]] = []
+    for d in docs:
+        tid = (d.get("thread_id") or "").strip()
+        if tid not in seen:
+            seen.add(tid)
+            first_per_thread.append(d)
+    return _emails_to_out(org_id, first_per_thread)
 
 
 @router.get("", response_model=list[EmailOut])

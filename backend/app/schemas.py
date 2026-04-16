@@ -304,3 +304,5 @@ class EmailOut(BaseModel):
     mail_account_id: Optional[str] = None
     mailbox: Optional[str] = None
     mail_account_name: Optional[str] = None
+    assigned_to: Optional[str] = None
+    assigned_to_name: Optional[str] = None

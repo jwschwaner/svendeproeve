@@ -48,6 +48,8 @@ export interface Email {
   /** IMAP folder/mailbox (e.g. INBOX), when known. */
   mailbox?: string | null;
   mail_account_name?: string | null;
+  assigned_to?: string | null;
+  assigned_to_name?: string | null;
 }
 
 export const categoryApi = {
