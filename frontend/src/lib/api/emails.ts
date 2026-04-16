@@ -1,4 +1,7 @@
 import { API_BASE_URL } from '../swr-config';
+import type { Email, EmailSeverity } from './categories';
+
+export type { EmailSeverity };
 
 export interface CategorizeEmailsPayload {
   limit?: number;
@@ -43,6 +46,27 @@ export const emailsApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || 'Failed to categorize emails');
+    }
+    return res.json();
+  },
+
+  patchSeverity: async (
+    orgId: string,
+    emailId: string,
+    severity: EmailSeverity,
+    token: string
+  ): Promise<Email> => {
+    const res = await fetch(
+      `${API_BASE_URL}/organizations/${orgId}/emails/${encodeURIComponent(emailId)}/severity`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ severity }),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to update severity');
     }
     return res.json();
   },
