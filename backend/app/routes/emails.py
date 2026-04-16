@@ -33,6 +33,7 @@ from app.schemas import (
     MembershipOut,
     ThreadAssignRequest,
     ThreadCaseOut,
+    ThreadCategoryUpdateRequest,
 )
 
 router = APIRouter(prefix="/organizations/{org_id}/emails", tags=["emails"])
@@ -189,6 +190,46 @@ def assign_thread(
     )
     doc = thread_cases_collection.find_one({"org_id": org_id, "thread_id": thread_id}) or {}
     return _build_thread_case_out(org_id, thread_id, doc)
+
+
+def _resolve_canonical_thread(org_id: str, thread_id: str) -> dict[str, Any]:
+    """Find the filter to match all emails in a thread, resolving the canonical thread_id."""
+    tk = thread_id.strip()
+    or_clauses: list[dict[str, Any]] = [{"thread_id": tk}]
+    if ObjectId.is_valid(tk):
+        or_clauses.append({"_id": ObjectId(tk)})
+    anchor = emails_collection.find_one({"org_id": org_id, "$or": or_clauses})
+    if not anchor:
+        return {}
+    canonical = (anchor.get("thread_id") or "").strip()
+    if canonical:
+        return {"org_id": org_id, "thread_id": canonical}
+    return {"org_id": org_id, "_id": anchor["_id"]}
+
+
+@router.patch("/threads/{thread_id}/category")
+def update_thread_category(
+    org_id: str,
+    thread_id: str,
+    payload: ThreadCategoryUpdateRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, str]:
+    require_org_membership(org_id, str(current_user["_id"]))
+    cat_oid = parse_object_id(payload.category_id, "category_id")
+    cat = categories_collection.find_one({"_id": cat_oid, "org_id": org_id})
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    thread_filter = _resolve_canonical_thread(org_id, thread_id)
+    if not thread_filter:
+        raise HTTPException(status_code=404, detail="No emails found for this thread")
+    now = datetime.now(timezone.utc)
+    result = emails_collection.update_many(
+        thread_filter,
+        {"$set": {"category_id": payload.category_id, "category_updated_at": now}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="No emails found for this thread")
+    return {"thread_id": thread_id, "category_id": payload.category_id, "updated": str(result.modified_count)}
 
 
 def _category_filter_clause(

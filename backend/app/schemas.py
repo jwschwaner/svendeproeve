@@ -250,6 +250,10 @@ class ThreadAssignRequest(BaseModel):
     )
 
 
+class ThreadCategoryUpdateRequest(BaseModel):
+    category_id: str = Field(description="Target category id to move the thread into.")
+
+
 class ThreadCaseOut(BaseModel):
     org_id: str
     thread_id: str

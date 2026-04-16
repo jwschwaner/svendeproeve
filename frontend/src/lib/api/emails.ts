@@ -109,4 +109,25 @@ export const emailsApi = {
     }
     return res.json();
   },
+
+  updateThreadCategory: async (
+    orgId: string,
+    threadId: string,
+    categoryId: string,
+    token: string,
+  ): Promise<{ thread_id: string; category_id: string; updated: string }> => {
+    const res = await apiFetch(
+      `/organizations/${orgId}/emails/threads/${encodeURIComponent(threadId)}/category`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ category_id: categoryId }),
+      },
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to update thread category');
+    }
+    return res.json();
+  },
 };

@@ -140,6 +140,31 @@ export default function ThreadPage({
     }
   };
 
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryFeedback, setCategoryFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const handleCategoryChange = async (newCategoryId: string) => {
+    if (!currentOrg || !token || !threadId || newCategoryId === categoryId) return;
+    setCategoryLoading(true);
+    setCategoryFeedback(null);
+    try {
+      await emailsApi.updateThreadCategory(currentOrg.id, threadId, newCategoryId, token);
+      const targetCat = categories.find(c => c.id === newCategoryId);
+      setCategoryFeedback({
+        type: 'success',
+        message: `Moved to ${targetCat?.name ?? 'new category'}`,
+      });
+      setTimeout(() => setCategoryFeedback(prev => prev?.type === 'success' ? null : prev), 3000);
+      router.push(`/categories/${newCategoryId}/thread/${threadId}`);
+    } catch (err) {
+      setCategoryFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to update category',
+      });
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
   const [replyBody, setReplyBody] = useState('');
   const [replyInternalNote, setReplyInternalNote] = useState(false);
   const replyInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -515,17 +540,35 @@ export default function ThreadPage({
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
                     Category
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'grey.100' }}>
-                    {category.name}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
-                    Mail Account
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'grey.100' }}>
-                    {formatMailAccountLine(threadSample)}
-                  </Typography>
+                  <FormControl fullWidth size="small">
+                    <Select
+                      value={categoryId}
+                      onChange={e => handleCategoryChange(e.target.value as string)}
+                      disabled={categoryLoading || categories.length === 0}
+                      sx={{
+                        fontSize: '0.875rem',
+                        color: 'grey.100',
+                        '.MuiSelect-icon': { color: 'text.secondary' },
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+                      }}
+                    >
+                      {categories.map(c => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  {categoryFeedback && (
+                    <Alert
+                      severity={categoryFeedback.type}
+                      onClose={() => setCategoryFeedback(null)}
+                      sx={{ mt: 1, py: 0, fontSize: '0.75rem' }}
+                    >
+                      {categoryFeedback.message}
+                    </Alert>
+                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
@@ -567,6 +610,14 @@ export default function ThreadPage({
                       {assignFeedback.message}
                     </Alert>
                   )}
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
+                    Mail Account
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'grey.100' }}>
+                    {formatMailAccountLine(threadSample)}
+                  </Typography>
                 </Box>
               </Box>
             </Paper>
