@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../swr-config';
+import { apiFetch } from '../swr-config';
 import type { Email, EmailSeverity } from './categories';
 
 export type { EmailSeverity };
@@ -17,12 +17,9 @@ export interface CategorizeEmailsResult {
 
 export const emailsApi = {
   getUncategorizedCount: async (orgId: string, token: string): Promise<{ count: number }> => {
-    const res = await fetch(
-      `${API_BASE_URL}/organizations/${orgId}/emails/uncategorized-count`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const res = await apiFetch(`/organizations/${orgId}/emails/uncategorized-count`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || 'Failed to fetch uncategorized count');
@@ -35,7 +32,7 @@ export const emailsApi = {
     payload: CategorizeEmailsPayload,
     token: string
   ): Promise<CategorizeEmailsResult> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/emails/categorize`, {
+    const res = await apiFetch(`/organizations/${orgId}/emails/categorize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
@@ -56,8 +53,8 @@ export const emailsApi = {
     severity: EmailSeverity,
     token: string
   ): Promise<Email> => {
-    const res = await fetch(
-      `${API_BASE_URL}/organizations/${orgId}/emails/${encodeURIComponent(emailId)}/severity`,
+    const res = await apiFetch(
+      `/organizations/${orgId}/emails/${encodeURIComponent(emailId)}/severity`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

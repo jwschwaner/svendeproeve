@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../swr-config';
+import { apiFetch } from '../swr-config';
 
 export interface Category {
   id: string;
@@ -47,7 +47,7 @@ export interface Email {
 
 export const categoryApi = {
   list: async (orgId: string, token: string): Promise<Category[]> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/categories`, {
+    const res = await apiFetch(`/organizations/${orgId}/categories`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Failed to fetch categories');
@@ -55,7 +55,7 @@ export const categoryApi = {
   },
 
   create: async (orgId: string, data: CategoryCreateData, token: string): Promise<Category> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/categories`, {
+    const res = await apiFetch(`/organizations/${orgId}/categories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
@@ -68,7 +68,7 @@ export const categoryApi = {
   },
 
   update: async (orgId: string, categoryId: string, data: CategoryUpdateData, token: string): Promise<Category> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/categories/${categoryId}`, {
+    const res = await apiFetch(`/organizations/${orgId}/categories/${categoryId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
@@ -81,7 +81,7 @@ export const categoryApi = {
   },
 
   delete: async (orgId: string, categoryId: string, token: string): Promise<void> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/categories/${categoryId}`, {
+    const res = await apiFetch(`/organizations/${orgId}/categories/${categoryId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -92,7 +92,7 @@ export const categoryApi = {
   },
 
   getMemberAccess: async (orgId: string, memberUserId: string, token: string): Promise<string[]> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/categories/members/${memberUserId}/access`, {
+    const res = await apiFetch(`/organizations/${orgId}/categories/members/${memberUserId}/access`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Failed to fetch member category access');
@@ -101,7 +101,7 @@ export const categoryApi = {
   },
 
   setMemberAccess: async (orgId: string, memberUserId: string, categoryIds: string[], token: string): Promise<void> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/categories/members/${memberUserId}/access`, {
+    const res = await apiFetch(`/organizations/${orgId}/categories/members/${memberUserId}/access`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ category_ids: categoryIds }),
@@ -113,7 +113,7 @@ export const categoryApi = {
   },
 
   listEmails: async (orgId: string, categoryId: string, token: string): Promise<Email[]> => {
-    const res = await fetch(`${API_BASE_URL}/organizations/${orgId}/emails?category_id=${encodeURIComponent(categoryId)}`, {
+    const res = await apiFetch(`/organizations/${orgId}/emails?category_id=${encodeURIComponent(categoryId)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Failed to fetch emails');
