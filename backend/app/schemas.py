@@ -284,3 +284,6 @@ class EmailOut(BaseModel):
     severity: Optional[EmailSeverity] = None
     case_status: str
     created_at: datetime
+    mail_account_id: Optional[str] = None
+    mailbox: Optional[str] = None
+    mail_account_name: Optional[str] = None

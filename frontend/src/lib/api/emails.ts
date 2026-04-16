@@ -16,6 +16,27 @@ export interface CategorizeEmailsResult {
 }
 
 export const emailsApi = {
+  /** Emails in one thread for a category, oldest first (requires category_id on the API). */
+  listThreadEmails: async (
+    orgId: string,
+    categoryId: string,
+    threadId: string,
+    token: string
+  ): Promise<Email[]> => {
+    const params = new URLSearchParams({
+      category_id: categoryId,
+      thread_id: threadId,
+    });
+    const res = await apiFetch(`/organizations/${orgId}/emails?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch thread emails');
+    }
+    return res.json();
+  },
+
   getUncategorizedCount: async (orgId: string, token: string): Promise<{ count: number }> => {
     const res = await apiFetch(`/organizations/${orgId}/emails/uncategorized-count`, {
       headers: { Authorization: `Bearer ${token}` },

@@ -43,6 +43,11 @@ export interface Email {
   severity?: EmailSeverity | null;
   case_status: string;
   created_at: string;
+  /** Mail account that received the message (IMAP poller), when known. */
+  mail_account_id?: string | null;
+  /** IMAP folder/mailbox (e.g. INBOX), when known. */
+  mailbox?: string | null;
+  mail_account_name?: string | null;
 }
 
 export const categoryApi = {

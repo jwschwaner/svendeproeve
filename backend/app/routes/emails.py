@@ -5,6 +5,7 @@ import hashlib
 import os
 from typing import Any, Optional
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo import UpdateOne
 from pymongo.errors import BulkWriteError
@@ -14,6 +15,7 @@ from app.email_threading import inherited_thread_categorization, is_reply_messag
 from app.db import (
     categories_collection,
     emails_collection,
+    mail_accounts_collection,
     member_category_access_collection,
     thread_cases_collection,
 )
@@ -157,9 +159,62 @@ def open_thread_case(
     )
 
 
-def _to_email_out(doc: dict) -> EmailOut:
+def _category_filter_clause(
+    org_id: str,
+    category_id: str,
+    membership: dict[str, Any],
+    user_id: str,
+) -> dict[str, Any]:
+    """Mongo filter fragment for emails in this category (or uncategorised). Raises 403 if member has no access."""
+    if membership["role"] == "member":
+        access = member_category_access_collection.find_one(
+            {"org_id": org_id, "user_id": user_id, "category_id": category_id}
+        )
+        if not access:
+            raise HTTPException(status_code=403, detail="No access to this category")
+    unc = _uncategorised_category_doc(org_id)
+    if unc is not None and str(unc["_id"]) == category_id:
+        unc_id_str = str(unc["_id"])
+        return {
+            "$or": [
+                {"category_id": None},
+                {"category_id": {"$exists": False}},
+                {"category_id": unc_id_str},
+            ]
+        }
+    return {"category_id": category_id}
+
+
+def _mail_account_id_str(doc: dict[str, Any]) -> Optional[str]:
+    raw = doc.get("mail_account_id")
+    if raw is None:
+        return None
+    return str(raw)
+
+
+def _mail_account_name_map(org_id: str, docs: list[dict[str, Any]]) -> dict[str, str]:
+    id_strs: set[str] = set()
+    for d in docs:
+        s = _mail_account_id_str(d)
+        if s:
+            id_strs.add(s)
+    if not id_strs:
+        return {}
+    oids = [ObjectId(s) for s in id_strs if ObjectId.is_valid(s)]
+    if not oids:
+        return {}
+    out: dict[str, str] = {}
+    for acc in mail_accounts_collection.find({"org_id": org_id, "_id": {"$in": oids}}):
+        label = (acc.get("name") or "").strip()
+        out[str(acc["_id"])] = label if label else str(acc["_id"])
+    return out
+
+
+def _to_email_out(doc: dict[str, Any], *, account_names: dict[str, str]) -> EmailOut:
     raw_sev = doc.get("severity")
     severity = raw_sev if raw_sev in ("critical", "non_critical") else None
+    mid = _mail_account_id_str(doc)
+    mname = account_names.get(mid) if mid else None
     return EmailOut(
         id=str(doc["_id"]),
         org_id=doc["org_id"],
@@ -174,38 +229,63 @@ def _to_email_out(doc: dict) -> EmailOut:
         severity=severity,
         case_status=doc.get("case_status", "open"),
         created_at=doc["created_at"],
+        mail_account_id=mid,
+        mailbox=doc.get("mailbox"),
+        mail_account_name=mname,
     )
+
+
+def _emails_to_out(org_id: str, docs: list[dict[str, Any]]) -> list[EmailOut]:
+    names = _mail_account_name_map(org_id, docs)
+    return [_to_email_out(d, account_names=names) for d in docs]
 
 
 @router.get("", response_model=list[EmailOut])
 def list_emails(
     org_id: str,
     category_id: Optional[str] = Query(default=None),
+    thread_id: Optional[str] = Query(
+        default=None,
+        description="If set, return only emails in this thread (requires category_id). Oldest first.",
+    ),
     current_user: dict = Depends(get_current_user),
 ) -> list[EmailOut]:
     membership = require_org_membership(org_id, str(current_user["_id"]))
+    uid = str(current_user["_id"])
 
-    query: dict[str, Any] = {"org_id": org_id}
-    if category_id:
-        if membership["role"] == "member":
-            access = member_category_access_collection.find_one(
-                {"org_id": org_id, "user_id": str(current_user["_id"]), "category_id": category_id}
-            )
-            if not access:
-                raise HTTPException(status_code=403, detail="No access to this category")
-        unc = _uncategorised_category_doc(org_id)
-        if unc is not None and str(unc["_id"]) == category_id:
-            unc_id_str = str(unc["_id"])
-            query["$or"] = [
-                {"category_id": None},
-                {"category_id": {"$exists": False}},
-                {"category_id": unc_id_str},
-            ]
+    if thread_id is not None:
+        if not category_id:
+            raise HTTPException(status_code=400, detail="category_id is required when thread_id is set")
+        tk = thread_id.strip()
+        if not tk:
+            raise HTTPException(status_code=400, detail="thread_id is empty")
+
+        cat_clause = _category_filter_clause(org_id, category_id, membership, uid)
+
+        or_clauses: list[dict[str, Any]] = [{"thread_id": tk}]
+        if ObjectId.is_valid(tk):
+            or_clauses.append({"_id": ObjectId(tk)})
+
+        anchor = emails_collection.find_one({"org_id": org_id, "$or": or_clauses})
+        if not anchor:
+            return []
+
+        canonical = (anchor.get("thread_id") or "").strip()
+        if canonical:
+            thread_part: dict[str, Any] = {"thread_id": canonical}
         else:
-            query["category_id"] = category_id
+            thread_part = {"_id": anchor["_id"]}
+
+        query: dict[str, Any] = {"$and": [{"org_id": org_id, **thread_part}, cat_clause]}
+        docs = list(emails_collection.find(query).sort("created_at", 1).limit(500))
+        return _emails_to_out(org_id, docs)
+
+    query = {"org_id": org_id}
+    if category_id:
+        query.update(_category_filter_clause(org_id, category_id, membership, uid))
 
     docs = list(emails_collection.find(query).sort("created_at", -1).limit(200))
-    return [_to_email_out(d) for d in docs]
+    return _emails_to_out(org_id, docs)
 
 
 @router.get("/uncategorized-count")
@@ -260,7 +340,7 @@ def patch_email_severity(
     updated = emails_collection.find_one({"_id": oid, "org_id": org_id})
     if updated is None:
         raise HTTPException(status_code=500, detail="Failed to fetch updated email")
-    return _to_email_out(updated)
+    return _emails_to_out(org_id, [updated])[0]
 
 
 @router.post("/ingest", response_model=EmailIngestResult)
