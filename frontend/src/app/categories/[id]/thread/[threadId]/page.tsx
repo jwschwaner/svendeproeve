@@ -17,7 +17,6 @@ import {
   Select,
   MenuItem,
   FormControl,
-  Alert,
   Chip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -30,6 +29,7 @@ import { organizationApi, emailsApi, categoryApi, Member, Email } from '@/lib/ap
 
 import { stripReplyQuote } from '@/lib/strip-reply-quote';
 import { apiFetch } from '@/lib/swr-config';
+import { useSnackbar } from '@/contexts/SnackbarContext';
 import useSWR from 'swr';
 
 function formatDateTime(raw: string): string {
@@ -65,6 +65,7 @@ export default function ThreadPage({
   const router = useRouter();
   const { user, token, isLoading: isLoadingAuth } = useAuth();
   const { currentOrg } = useOrganizations();
+  const { showSnackbar } = useSnackbar();
 
   const { data: members, isLoading: isLoadingMembers } = useSWR<Member[]>(
     currentOrg && token ? ['members', currentOrg.id, token] : null,
@@ -117,50 +118,32 @@ export default function ThreadPage({
   );
 
   const [assignLoading, setAssignLoading] = useState(false);
-  const [assignFeedback, setAssignFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const handleAssign = async (userId: string | null) => {
     if (!currentOrg || !token || !threadId) return;
     setAssignLoading(true);
-    setAssignFeedback(null);
     try {
       const updated = await emailsApi.assignThread(currentOrg.id, threadId, userId, token);
       mutateThreadCase(prev => ({ ...prev, ...updated }), false);
       const name = updated.assigned_to_name;
-      setAssignFeedback({
-        type: 'success',
-        message: name ? `Assigned to ${name}` : 'Unassigned successfully',
-      });
-      setTimeout(() => setAssignFeedback(prev => prev?.type === 'success' ? null : prev), 3000);
+      showSnackbar(name ? `Assigned to ${name}` : 'Unassigned successfully', 'success');
     } catch (err) {
-      setAssignFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to assign thread',
-      });
+      showSnackbar(err instanceof Error ? err.message : 'Failed to assign thread', 'error');
     } finally {
       setAssignLoading(false);
     }
   };
 
   const [categoryLoading, setCategoryLoading] = useState(false);
-  const [categoryFeedback, setCategoryFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const handleCategoryChange = async (newCategoryId: string) => {
     if (!currentOrg || !token || !threadId || newCategoryId === categoryId) return;
     setCategoryLoading(true);
-    setCategoryFeedback(null);
     try {
       await emailsApi.updateThreadCategory(currentOrg.id, threadId, newCategoryId, token);
       const targetCat = categories.find(c => c.id === newCategoryId);
-      setCategoryFeedback({
-        type: 'success',
-        message: `Moved to ${targetCat?.name ?? 'new category'}`,
-      });
-      setTimeout(() => setCategoryFeedback(prev => prev?.type === 'success' ? null : prev), 3000);
+      showSnackbar(`Moved to ${targetCat?.name ?? 'new category'}`, 'success');
       router.push(`/categories/${newCategoryId}/thread/${threadId}`);
     } catch (err) {
-      setCategoryFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to update category',
-      });
+      showSnackbar(err instanceof Error ? err.message : 'Failed to update category', 'error');
     } finally {
       setCategoryLoading(false);
     }
@@ -172,12 +155,10 @@ export default function ThreadPage({
     { value: 'waiting_for_customer', label: 'Waiting for customer' },
   ] as const;
   const [statusLoading, setStatusLoading] = useState(false);
-  const [statusFeedback, setStatusFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const handleStatusChange = async (newStatus: string) => {
     if (!currentOrg || !token || !threadId) return;
     if (newStatus === threadSample?.case_status) return;
     setStatusLoading(true);
-    setStatusFeedback(null);
     try {
       await emailsApi.updateThreadStatus(
         currentOrg.id, threadId,
@@ -187,38 +168,28 @@ export default function ThreadPage({
       mutateEmails();
       mutateThreadCase();
       const label = STATUS_OPTIONS.find(o => o.value === newStatus)?.label ?? newStatus;
-      setStatusFeedback({ type: 'success', message: `Status set to ${label}` });
-      setTimeout(() => setStatusFeedback(prev => prev?.type === 'success' ? null : prev), 3000);
+      showSnackbar(`Status set to ${label}`, 'success');
     } catch (err) {
-      setStatusFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to update status',
-      });
+      showSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error');
     } finally {
       setStatusLoading(false);
     }
   };
 
   const [severityLoading, setSeverityLoading] = useState(false);
-  const [severityFeedback, setSeverityFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const handleSeverityChange = async (newSeverity: 'critical' | 'non_critical') => {
     if (!currentOrg || !token || !threadSample) return;
     if (newSeverity === threadSample.severity) return;
     setSeverityLoading(true);
-    setSeverityFeedback(null);
     try {
       await emailsApi.patchSeverity(currentOrg.id, threadSample.id, newSeverity, token);
       mutateEmails();
-      setSeverityFeedback({
-        type: 'success',
-        message: `Severity set to ${newSeverity === 'critical' ? 'Critical' : 'Non-Critical'}`,
-      });
-      setTimeout(() => setSeverityFeedback(prev => prev?.type === 'success' ? null : prev), 3000);
+      showSnackbar(
+        `Severity set to ${newSeverity === 'critical' ? 'Critical' : 'Non-Critical'}`,
+        'success',
+      );
     } catch (err) {
-      setSeverityFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to update severity',
-      });
+      showSnackbar(err instanceof Error ? err.message : 'Failed to update severity', 'error');
     } finally {
       setSeverityLoading(false);
     }
@@ -229,12 +200,11 @@ export default function ThreadPage({
   const replyInputRef = useRef<HTMLTextAreaElement | null>(null);
   const emailListRef = useRef<HTMLDivElement | null>(null);
   const [replySending, setReplySending] = useState(false);
-  const [replyFeedback, setReplyFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleSendReply = async () => {
     if (!currentOrg || !token || !threadId || !replyBody.trim()) return;
+    const wasInternalNote = replyInternalNote;
     setReplySending(true);
-    setReplyFeedback(null);
     try {
       await emailsApi.replyToThread(currentOrg.id, threadId, replyBody.trim(), replyInternalNote, token);
       setReplyBody('');
@@ -243,16 +213,12 @@ export default function ThreadPage({
       requestAnimationFrame(() => {
         emailListRef.current?.scrollTo({ top: emailListRef.current.scrollHeight, behavior: 'smooth' });
       });
-      setReplyFeedback({
-        type: 'success',
-        message: replyInternalNote ? 'Internal note added' : 'Reply sent successfully',
-      });
-      setTimeout(() => setReplyFeedback(prev => prev?.type === 'success' ? null : prev), 3000);
+      showSnackbar(
+        wasInternalNote ? 'Internal note added' : 'Reply sent successfully',
+        'success',
+      );
     } catch (err) {
-      setReplyFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to send reply',
-      });
+      showSnackbar(err instanceof Error ? err.message : 'Failed to send reply', 'error');
     } finally {
       setReplySending(false);
     }
@@ -606,15 +572,6 @@ export default function ThreadPage({
                     </Button>
                   </Box>
                 </Box>
-                {replyFeedback && (
-                  <Alert
-                    severity={replyFeedback.type}
-                    sx={{ mt: 1 }}
-                    onClose={() => setReplyFeedback(null)}
-                  >
-                    {replyFeedback.message}
-                  </Alert>
-                )}
               </Paper>
             </Box>
 
@@ -659,15 +616,6 @@ export default function ThreadPage({
                       ))}
                     </Select>
                   </FormControl>
-                  {statusFeedback && (
-                    <Alert
-                      severity={statusFeedback.type}
-                      onClose={() => setStatusFeedback(null)}
-                      sx={{ mt: 1, py: 0, fontSize: '0.75rem' }}
-                    >
-                      {statusFeedback.message}
-                    </Alert>
-                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
@@ -693,15 +641,6 @@ export default function ThreadPage({
                       <MenuItem value="non_critical">Non-Critical</MenuItem>
                     </Select>
                   </FormControl>
-                  {severityFeedback && (
-                    <Alert
-                      severity={severityFeedback.type}
-                      onClose={() => setSeverityFeedback(null)}
-                      sx={{ mt: 1, py: 0, fontSize: '0.75rem' }}
-                    >
-                      {severityFeedback.message}
-                    </Alert>
-                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
@@ -727,15 +666,6 @@ export default function ThreadPage({
                       ))}
                     </Select>
                   </FormControl>
-                  {categoryFeedback && (
-                    <Alert
-                      severity={categoryFeedback.type}
-                      onClose={() => setCategoryFeedback(null)}
-                      sx={{ mt: 1, py: 0, fontSize: '0.75rem' }}
-                    >
-                      {categoryFeedback.message}
-                    </Alert>
-                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>
@@ -768,15 +698,6 @@ export default function ThreadPage({
                       ))}
                     </Select>
                   </FormControl>
-                  {assignFeedback && (
-                    <Alert
-                      severity={assignFeedback.type}
-                      onClose={() => setAssignFeedback(null)}
-                      sx={{ mt: 1, py: 0, fontSize: '0.75rem' }}
-                    >
-                      {assignFeedback.message}
-                    </Alert>
-                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}>

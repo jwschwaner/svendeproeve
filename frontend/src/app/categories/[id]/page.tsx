@@ -12,7 +12,6 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
-  Alert,
   Tooltip,
   IconButton,
 } from '@mui/material';
@@ -23,6 +22,7 @@ import { useOrganizations } from '@/hooks/useOrganizations';
 import { useCategories } from '@/hooks/useCategories';
 import { organizationApi, categoryApi, emailsApi, Member, Email } from '@/lib/api';
 import { CaseStatusChip, SeverityChip } from '@/lib/email-status-chips';
+import { useSnackbar } from '@/contexts/SnackbarContext';
 import useSWR from 'swr';
 
 function formatDate(raw: string): string {
@@ -67,6 +67,7 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const { user, token } = useAuth();
   const { currentOrg } = useOrganizations();
+  const { showSnackbar } = useSnackbar();
 
   const { data: members, isLoading: isLoadingMembers } = useSWR<Member[]>(
     currentOrg && token ? ['members', currentOrg.id, token] : null,
@@ -94,18 +95,16 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
   );
 
   const [isRecategorizing, setIsRecategorizing] = useState(false);
-  const [recatError, setRecatError] = useState('');
 
   const handleRecategorize = async () => {
     if (!currentOrg || !token) return;
-    setRecatError('');
     setIsRecategorizing(true);
     try {
       await emailsApi.categorize(currentOrg.id, { limit: 500, force: false }, token);
       await mutateEmails();
       await mutateUncCount();
     } catch (err: unknown) {
-      setRecatError(err instanceof Error ? err.message : 'Failed to re-categorize');
+      showSnackbar(err instanceof Error ? err.message : 'Failed to re-categorize', 'error');
     } finally {
       setIsRecategorizing(false);
     }
@@ -174,12 +173,6 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
           </Box>
         )}
       </Box>
-      {recatError && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setRecatError('')}>
-          {recatError}
-        </Alert>
-      )}
-
       {isLoadingEmails ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
