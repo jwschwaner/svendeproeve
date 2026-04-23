@@ -11,6 +11,7 @@ import {
   TableRow,
   CircularProgress,
   Box,
+  Tooltip,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -19,14 +20,8 @@ import { useOrganizations } from '@/hooks/useOrganizations';
 import { useCategories } from '@/hooks/useCategories';
 import { organizationApi, emailsApi, Member, Email, Category } from '@/lib/api';
 import { CaseStatusChip, SeverityChip } from '@/lib/email-status-chips';
+import { formatAbsoluteDateTime, formatRelativeTime, useNowTick } from '@/lib/time';
 import useSWR from 'swr';
-
-function formatDate(raw: string): string {
-  if (!raw) return '—';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return raw;
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function categoryName(categories: Category[], categoryId: string | null | undefined): string {
   if (!categoryId) return '—';
@@ -37,6 +32,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, user, token } = useAuth();
   const { currentOrg, hasOrganizations, isLoading } = useOrganizations();
+  useNowTick();
 
   const { data: members } = useSWR<Member[]>(
     currentOrg && token ? ['members', currentOrg.id, token] : null,
@@ -115,7 +111,11 @@ export default function DashboardPage() {
                     <TableCell sx={{ color: 'text.secondary' }}>{categoryName(categories, email.category_id)}</TableCell>
                     <TableCell><SeverityChip severity={email.severity} /></TableCell>
                     <TableCell><CaseStatusChip caseStatus={email.case_status} /></TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{formatDate(email.date || email.created_at)}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>
+                      <Tooltip title={formatAbsoluteDateTime(email.date || email.created_at)}>
+                        <span>{formatRelativeTime(email.date || email.created_at)}</span>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (

@@ -22,15 +22,9 @@ import { useOrganizations } from '@/hooks/useOrganizations';
 import { useCategories } from '@/hooks/useCategories';
 import { organizationApi, categoryApi, emailsApi, Member, Email } from '@/lib/api';
 import { CaseStatusChip, SeverityChip } from '@/lib/email-status-chips';
+import { formatAbsoluteDateTime, formatRelativeTime, useNowTick } from '@/lib/time';
 import { useSnackbar } from '@/contexts/SnackbarContext';
 import useSWR from 'swr';
-
-function formatDate(raw: string): string {
-  if (!raw) return '—';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return raw;
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 /**
  * One row per thread: latest message drives From / last activity / status;
@@ -68,6 +62,7 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
   const { user, token } = useAuth();
   const { currentOrg } = useOrganizations();
   const { showSnackbar } = useSnackbar();
+  useNowTick();
 
   const { data: members, isLoading: isLoadingMembers } = useSWR<Member[]>(
     currentOrg && token ? ['members', currentOrg.id, token] : null,
@@ -206,7 +201,11 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
                 >
                   <TableCell sx={{ color: 'white' }}>{email.subject || '(no subject)'}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{email.sender}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>{formatDate(email.date || email.created_at)}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>
+                    <Tooltip title={formatAbsoluteDateTime(email.date || email.created_at)}>
+                      <span>{formatRelativeTime(email.date || email.created_at)}</span>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell>
                     <SeverityChip severity={email.severity} />
                   </TableCell>

@@ -18,6 +18,7 @@ import {
   MenuItem,
   FormControl,
   Chip,
+  Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -29,21 +30,9 @@ import { organizationApi, emailsApi, categoryApi, Member, Email } from '@/lib/ap
 
 import { stripReplyQuote } from '@/lib/strip-reply-quote';
 import { apiFetch } from '@/lib/swr-config';
+import { formatAbsoluteDateTime, formatRelativeTime, useNowTick } from '@/lib/time';
 import { useSnackbar } from '@/contexts/SnackbarContext';
 import useSWR from 'swr';
-
-function formatDateTime(raw: string): string {
-  if (!raw) return '—';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return raw;
-  return d.toLocaleString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function formatMailAccountLine(e: Email | undefined): string {
   if (!e) return '—';
@@ -66,6 +55,7 @@ export default function ThreadPage({
   const { user, token, isLoading: isLoadingAuth } = useAuth();
   const { currentOrg } = useOrganizations();
   const { showSnackbar } = useSnackbar();
+  useNowTick();
 
   const { data: members, isLoading: isLoadingMembers } = useSWR<Member[]>(
     currentOrg && token ? ['members', currentOrg.id, token] : null,
@@ -423,9 +413,11 @@ export default function ThreadPage({
                               <Chip label="Sent" size="small" sx={{ bgcolor: category.color || 'grey.700', color: '#fff', fontSize: '0.7rem', height: 20 }} />
                             )}
                           </Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {formatDateTime(email.date || email.created_at)}
-                          </Typography>
+                          <Tooltip title={formatAbsoluteDateTime(email.date || email.created_at)}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {formatRelativeTime(email.date || email.created_at)}
+                            </Typography>
+                          </Tooltip>
                         </Box>
                         <Divider sx={{ mb: 1.5, borderColor: 'rgba(255,255,255,0.08)' }} />
                         <Typography
