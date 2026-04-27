@@ -38,16 +38,16 @@ npm run test:teardown       # (Docker only)
 Place tests in `tests/e2e/`:
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('example test', async ({ page }) => {
-  await page.goto('/login');
-  await expect(page).toHaveURL('/login');
+test("example test", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page).toHaveURL("/login");
 });
 ```
 
 ## Troubleshooting
 
-- **Backend fails**: Check MongoDB is running, port 8000 is free
+- **Backend fails**: Check MongoDB is running
 - **Tests timeout**: Ensure Python dependencies installed
 - **Docker error**: Start Docker Desktop or use local MongoDB
