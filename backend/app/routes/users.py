@@ -10,7 +10,6 @@ from app.db import (
     organizations_collection,
     mail_accounts_collection,
     categories_collection,
-    filters_collection,
     member_category_access_collection,
     thread_cases_collection,
 )
@@ -148,7 +147,6 @@ def delete_account(
         # Delete all data associated with owned organizations
         mail_accounts_collection.delete_many({"org_id": org_id})
         categories_collection.delete_many({"org_id": org_id})
-        filters_collection.delete_many({"org_id": org_id})
         member_category_access_collection.delete_many({"org_id": org_id})
         emails_collection.delete_many({"org_id": org_id})
         thread_cases_collection.delete_many({"org_id": org_id})

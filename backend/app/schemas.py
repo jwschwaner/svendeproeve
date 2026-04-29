@@ -205,38 +205,6 @@ class CategoryOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-
-class FilterCreateRequest(BaseModel):
-    name: str = Field(min_length=2, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=500)
-    match_query: str = Field(
-        min_length=2,
-        description="Human-readable rule/query that AI/classifier can evaluate.",
-    )
-    target_category_id: str
-    is_active: bool = True
-
-
-class FilterUpdateRequest(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=2, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=500)
-    match_query: Optional[str] = Field(default=None, min_length=2)
-    target_category_id: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
-class FilterOut(BaseModel):
-    id: str
-    org_id: str
-    name: str
-    description: Optional[str] = None
-    match_query: str
-    target_category_id: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-
 class MemberCategoryAccessUpdateRequest(BaseModel):
     category_ids: list[str] = Field(default_factory=list)
 

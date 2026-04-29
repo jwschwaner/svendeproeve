@@ -32,13 +32,6 @@ Mail account (IMAP connection) management:
 - `POST /organizations/{org_id}/mail-accounts/test` (test IMAP login)
 - `POST /organizations/{org_id}/mail-accounts/test-smtp` (test SMTP login)
 
-Filter management:
-
-- `POST /organizations/{org_id}/filters`
-- `GET /organizations/{org_id}/filters`
-- `PUT /organizations/{org_id}/filters/{filter_id}`
-- `DELETE /organizations/{org_id}/filters/{filter_id}`
-
 ## Setup
 
 ```powershell
