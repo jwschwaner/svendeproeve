@@ -21,9 +21,6 @@ mail_accounts_collection.create_index("org_id")
 categories_collection = db["categories"]
 categories_collection.create_index("org_id")
 
-filters_collection = db["filters"]
-filters_collection.create_index("org_id")
-
 member_category_access_collection = db["member_category_access"]
 member_category_access_collection.create_index(
     [("org_id", 1), ("user_id", 1), ("category_id", 1)], unique=True
