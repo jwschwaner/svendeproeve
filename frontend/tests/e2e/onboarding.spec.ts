@@ -56,4 +56,16 @@ test.describe("Onboarding Flow", () => {
       "Organization name is required",
     );
   });
+
+  test("should not show Leave button for an org you own", async ({ page }) => {
+    await page.getByTestId("show-create-org-button").click();
+    await page.getByTestId("onboarding-org-name-input").fill(testUser.orgName!);
+    await page.getByTestId("onboarding-create-org-button").click();
+    await expect(page).toHaveURL("/dashboard", { timeout: 15000 });
+
+    // Return to onboarding via switch mode
+    await page.goto("/onboarding?switch=true");
+    await expect(page.getByText(testUser.orgName!)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: "Leave" })).toHaveCount(0);
+  });
 });
