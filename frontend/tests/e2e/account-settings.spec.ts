@@ -213,6 +213,11 @@ test.describe("Account Settings", () => {
         page.getByRole("heading", { name: "Change Password" }),
       ).toBeVisible();
 
+      await page.getByRole("button", { name: "Organizations" }).click();
+      await expect(
+        page.getByRole("heading", { name: "Organizations" }),
+      ).toBeVisible();
+
       await page.getByRole("button", { name: "Delete Account" }).click();
       await expect(
         page.getByText("Deleting your account is permanent"),
@@ -222,6 +227,29 @@ test.describe("Account Settings", () => {
       await expect(
         page.getByRole("heading", { name: "Profile Information" }),
       ).toBeVisible();
+    });
+  });
+
+  test.describe("Organizations Section", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.getByRole("button", { name: "Organizations" }).click();
+      await expect(
+        page.getByRole("heading", { name: "Organizations" }),
+      ).toBeVisible();
+    });
+
+    test("shows the org created during setup with Owner chip", async ({
+      page,
+    }) => {
+      await expect(
+        page.locator(".MuiChip-root").filter({ hasText: "Owner" }),
+      ).toBeVisible();
+    });
+
+    test("does not show a Leave button for an owned org", async ({ page }) => {
+      await expect(
+        page.getByRole("button", { name: "Leave" }),
+      ).not.toBeVisible();
     });
   });
 });

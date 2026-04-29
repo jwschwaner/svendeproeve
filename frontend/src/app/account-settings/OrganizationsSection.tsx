@@ -55,7 +55,7 @@ export default function OrganizationsSection() {
   );
 
   return (
-    <Box>
+    <Box data-testid="organizations-section">
       <Card sx={{ bgcolor: "#2c2c2c" }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, color: "white" }}>
